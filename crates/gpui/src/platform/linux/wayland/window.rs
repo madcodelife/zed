@@ -797,6 +797,16 @@ impl PlatformWindow for WaylandWindow {
         self.borrow().bounds.size
     }
 
+    fn resize(&mut self, size: Size<Pixels>) {
+        let mut state = self.borrow_mut();
+        let state_ptr = self.0.clone();
+        state
+            .globals
+            .executor
+            .spawn(async move { state_ptr.resize(size) })
+            .detach();
+    }
+
     fn scale_factor(&self) -> f32 {
         self.borrow().scale
     }

@@ -165,18 +165,39 @@ impl Render for WindowDemo {
                     })
                     .detach();
             }))
+            .child(button("Resize", |window, _| {
+                let content_size = window.bounds().size;
+
+                let size = if content_size.width <= px(800.) {
+                    size(px(1000.), px(750.))
+                } else {
+                    size(px(800.), px(600.))
+                };
+
+                window.resize(size);
+            }))
     }
 }
 
 fn main() {
     Application::new().run(|cx: &mut App| {
         let bounds = Bounds::centered(None, size(px(800.0), px(600.0)), cx);
+
         cx.open_window(
             WindowOptions {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),
                 ..Default::default()
             },
-            |_, cx| cx.new(|_| WindowDemo {}),
+            |window, cx| {
+                cx.new(|cx| {
+                    cx.observe_window_bounds(window, move |_, window, _| {
+                        println!("Window bounds changed: {:?}", window.bounds());
+                    })
+                    .detach();
+
+                    WindowDemo {}
+                })
+            },
         )
         .unwrap();
     });

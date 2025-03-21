@@ -1143,6 +1143,27 @@ impl PlatformWindow for X11Window {
             .map(|size| size.div(state.scale_factor))
     }
 
+    fn resize(&mut self, size: Size<Pixels>) {
+        let mut state = self.0.state.borrow_mut();
+        let this_ptr = self.0.clone();
+        let bounds = Bounds::new(
+            Point {
+                x: state.bounds.origin.x.0 as i32,
+                y: state.bounds.origin.y.0 as i32,
+            },
+            Size {
+                width: size.width.0 as i32,
+                height: size.height.0 as i32,
+            },
+        );
+        state
+            .executor
+            .spawn(async move {
+                let _ = this_ptr.configure(bounds);
+            })
+            .detach();
+    }
+
     fn scale_factor(&self) -> f32 {
         self.0.state.borrow().scale_factor
     }
