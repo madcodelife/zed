@@ -919,12 +919,22 @@ impl PlatformWindow for MacWindow {
         // (hence stealing both ESC and Space shortcuts), we find and add one non-Cancel button
         // last, so it gets focus and a Space shortcut.
         // This way, "Save this file? Yes/No/Cancel"-ish modals will get all three buttons mapped with a key.
-        let latest_non_cancel_label = answers
-            .iter()
-            .enumerate()
-            .rev()
-            .find(|(_, label)| **label != "Cancel")
-            .filter(|&(label_index, _)| label_index > 0);
+        let (latest_non_cancel_label, has_cancel) = {
+            let mut has_cancel = false;
+            let latest_non_cancel = answers
+                .iter()
+                .enumerate()
+                .rev()
+                .find(|(_, label)| {
+                    let is_cancel = **label == "Cancel";
+                    if is_cancel {
+                        has_cancel = true;
+                    }
+                    !is_cancel
+                })
+                .filter(|&(label_index, _)| label_index > 0);
+            (latest_non_cancel, has_cancel)
+        };
 
         unsafe {
             let alert: id = msg_send![class!(NSAlert), alloc];
@@ -951,6 +961,11 @@ impl PlatformWindow for MacWindow {
             if let Some((ix, answer)) = latest_non_cancel_label {
                 let button: id = msg_send![alert, addButtonWithTitle: ns_string(answer)];
                 let _: () = msg_send![button, setTag: ix as NSInteger];
+
+                // If there is no cancel button, set the key equivalent to ESC.
+                if !has_cancel {
+                    let _: () = msg_send![button, setKeyEquivalent: ns_string("\u{1b}")];
+                }
             }
 
             let (done_tx, done_rx) = oneshot::channel();
